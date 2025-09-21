@@ -160,10 +160,10 @@ export class DatabaseManager {
         
         await client.query(`
           INSERT INTO address_balances (address, balance) 
-          VALUES ($1, -$2)
+          VALUES ($1, $2)
           ON CONFLICT (address) 
           DO UPDATE SET balance = address_balances.balance - $2, updated_at = CURRENT_TIMESTAMP
-        `, [address, value]);
+        `, [address, -value]);
       }
     }
     

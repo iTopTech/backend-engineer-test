@@ -1,41 +1,8 @@
 import Fastify from 'fastify';
 import { Pool } from 'pg';
-import { randomUUID } from 'crypto';
+import { BlockchainService } from './services';
 
 const fastify = Fastify({ logger: true });
-
-fastify.get('/', async (request, reply) => {
-  return { hello: 'world' };
-});
-
-async function testPostgres(pool: Pool) {
-  const id = randomUUID();
-  const name = 'Satoshi';
-  const email = 'Nakamoto';
-
-  await pool.query(`DELETE FROM users;`);
-
-  await pool.query(`
-    INSERT INTO users (id, name, email)
-    VALUES ($1, $2, $3);
-  `, [id, name, email]);
-
-  const { rows } = await pool.query(`
-    SELECT * FROM users;
-  `);
-
-  console.log('USERS', rows);
-}
-
-async function createTables(pool: Pool) {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL
-    );
-  `);
-}
 
 async function bootstrap() {
   console.log('Bootstrapping...');
@@ -48,8 +15,12 @@ async function bootstrap() {
     connectionString: databaseUrl
   });
 
-  await createTables(pool);
-  await testPostgres(pool);
+  const blockchainService = new BlockchainService(pool);
+  await blockchainService.initialize();
+
+  await blockchainService.routes.registerRoutes(fastify);
+
+  console.log(`Current height: ${blockchainService.db.getCurrentHeight()}`);
 }
 
 try {
